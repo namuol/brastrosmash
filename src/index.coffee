@@ -38,6 +38,7 @@ html ->
         gapy: 0
 
       gbox.addImage 'bg', 'bg.png'
+      gbox.addImage 'bullet', 'bullet.png'
       gbox.addImage 'font', 'font.png'
       gbox.addFont
         id: 'small'
@@ -50,6 +51,24 @@ html ->
         gapy: 0
 
       gbox.loadAll main
+    addBullet = ->
+      gbox.addObject
+        group: 'bullets'
+        active: false
+        x: 0
+        y: 0
+        speed: 4
+        first: ->
+          if @active
+            @y -= @speed
+            if @y < -gbox.getImage('bullet').height
+              @active = false
+
+        blit: ->
+          if @active
+            gbox.blitAll gbox.getBufferContext(), gbox.getImage('bullet'),
+              dx:@x
+              dy:@y
 
     addPlayer = ->
       gbox.addObject
@@ -59,8 +78,11 @@ html ->
         frame: 0
         width: gbox.getImage('player_sprite').width
         speed: 2
+        bullets: []
         initialize: ->
-          @x = gbox.getScreenW()/2 - gbox.getImage('player_sprite').width/2
+          @w = gbox.getImage('player_sprite').width
+          @w = gbox.getImage('player_sprite').height
+          @x = gbox.getScreenW()/2 - @w/2
           @y = 81
 
         first: ->
@@ -69,6 +91,14 @@ html ->
             vx -= @speed
           if gbox.keyIsPressed 'right'
             vx += @speed
+
+          if gbox.keyIsHit('a') or gbox.keyIsHit('b')
+            for bullet in @bullets
+              if !bullet.active
+                bullet.active = true
+                bullet.x = @x + @w/2 - 2
+                bullet.y = @y - 4
+                break
 
           @x += vx
 
@@ -89,34 +119,28 @@ html ->
             alpha: 1.0
 
     main = ->
-      gbox.setGroups ['background', 'player', 'game']
+      gbox.setGroups ['background', 'bullets', 'player', 'game']
       maingame = gamecycle.createMaingame('game', 'game')
       maingame.gameMenu = -> true
  
       maingame.gameIntroAnimation = -> true
 
-      maingame.gameTitleIntroAnimation = (reset) ->
-        if reset
-          toys.resetToy @, 'rising'
-
+      maingame.gameTitleIntroAnimation = ->
         gbox.blitFade gbox.getBufferContext(),
           alpha:1
-        toys.logos.linear @, 'rising',
-          image: 'logo'
-          sx: gbox.getScreenW() / 2 - gbox.getImage('logo').width / 2
-          sy: 1
-          x: gbox.getScreenW() / 2 - gbox.getImage('logo').width / 2
-          y: 1
-          speed: 0
+        gbox.blitAll gbox.getBufferContext(), gbox.getImage('logo'),
+          dx:1
+          dy:1
+
+        gbox.keyIsHit 'a'
 
       maingame.pressStartIntroAnimation = (reset) ->
-        if reset
-          toys.resetToy @, 'default-blinker'
-        else
-          gbox.keyIsHit 'a'
+        gbox.keyIsHit 'a'
 
       maingame.initializeGame = ->
-        addPlayer()
+        player = addPlayer()
+        player.bullets.push addBullet()
+        player.bullets.push addBullet()
 
         gbox.addObject
           id: 'bg_id'
@@ -130,12 +154,9 @@ html ->
             gbox.blitAll gbox.getBufferContext(), gbox.getImage('bg'),
               dx:1
               dy:1
-      ###
-      gbox.setRenderOrder [
-        'background'
-        'player'
-      ]
-      ###
+
+
+
       gbox.go()
 
     window.addEventListener 'load', loadResources, false
