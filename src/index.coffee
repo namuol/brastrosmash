@@ -37,6 +37,7 @@ html ->
         gapx: 0
         gapy: 0
 
+      gbox.addImage 'bg', 'bg.png'
       gbox.addImage 'font', 'font.png'
       gbox.addFont
         id: 'small'
@@ -60,7 +61,7 @@ html ->
         speed: 2
         initialize: ->
           @x = gbox.getScreenW()/2 - gbox.getImage('player_sprite').width/2
-          @y = 90
+          @y = 81
 
         first: ->
           vx = 0
@@ -77,7 +78,6 @@ html ->
             @x = gbox.getScreenW() - @width - 1
 
         blit: ->
-          gbox.blitFade gbox.getBufferContext(), {}
           gbox.blitTile gbox.getBufferContext(),
             tileset: @tileset
             tile: @frame
@@ -89,7 +89,7 @@ html ->
             alpha: 1.0
 
     main = ->
-      gbox.setGroups ['player', 'game']
+      gbox.setGroups ['background', 'player', 'game']
       maingame = gamecycle.createMaingame('game', 'game')
       maingame.gameMenu = -> true
  
@@ -118,6 +118,24 @@ html ->
       maingame.initializeGame = ->
         addPlayer()
 
+        gbox.addObject
+          id: 'bg_id'
+          group: 'background'
+          color: 'rgb(0,0,0)'
+          blit: ->
+            gbox.blitFade gbox.getBufferContext(),
+              color:@color
+              alpha:1
+
+            gbox.blitAll gbox.getBufferContext(), gbox.getImage('bg'),
+              dx:1
+              dy:1
+      ###
+      gbox.setRenderOrder [
+        'background'
+        'player'
+      ]
+      ###
       gbox.go()
 
     window.addEventListener 'load', loadResources, false
