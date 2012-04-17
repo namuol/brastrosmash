@@ -23,6 +23,8 @@ html ->
         height: 102
         zoom: 4
 
+      gbox.setFps 60
+
       gbox.addImage 'logo', 'logo.png'
 
       gbox.addImage "player_sprite", "player_sprite.png"
@@ -53,18 +55,26 @@ html ->
         id: "player_id"
         group: "player"
         tileset: "player_tiles"
+        frame: 0
+        width: gbox.getImage('player_sprite').width
+        speed: 2
         initialize: ->
-          toys.topview.initialize this, {}
+          @x = gbox.getScreenW()/2 - gbox.getImage('player_sprite').width/2
+          @y = 90
 
         first: ->
-          toys.topview.controlKeys this,
-            left: "left"
-            right: "right"
-            #up: "up"
-            #down: "down"
+          vx = 0
+          if gbox.keyIsPressed 'left'
+            vx -= @speed
+          if gbox.keyIsPressed 'right'
+            vx += @speed
 
-          toys.topview.handleAccellerations this
-          toys.topview.applyForces this
+          @x += vx
+
+          if @x < 1
+            @x = 1
+          if @x > gbox.getScreenW() - @width - 1
+            @x = gbox.getScreenW() - @width - 1
 
         blit: ->
           gbox.blitFade gbox.getBufferContext(), {}
@@ -81,6 +91,10 @@ html ->
     main = ->
       gbox.setGroups ['player', 'game']
       maingame = gamecycle.createMaingame('game', 'game')
+      maingame.gameMenu = -> true
+ 
+      maingame.gameIntroAnimation = -> true
+
       maingame.gameTitleIntroAnimation = (reset) ->
         if reset
           toys.resetToy @, 'rising'
