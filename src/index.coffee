@@ -19,7 +19,8 @@ html ->
       span 'SHOOT: Z/X'
   coffeescript ->
     frand = (min, max) -> min + Math.random()*(max-min)
-    rand = (min, max) -> Math.round(frand(min, max))
+    window.rand = (min, max) -> Math.round(frand(min, max))
+    choose = (array) -> array[rand(0,array.length-1)]
 
     maingame = undefined
 
@@ -322,6 +323,50 @@ html ->
     YELLOW_GREEN = '#77cf87'
     PURPLE = '#b71f5f'
 
+    ROCK_COLORS = [
+      [
+        0#ORANGE
+        1#LIGHT_BLUE
+        #2#PINK
+        #3#GREEN
+        #4#OFF_WHITE
+        #5#YELLOW
+      ]
+      [
+        0#ORANGE
+        1#LIGHT_BLUE
+        2#PINK
+        4#OFF_WHITE
+        5#YELLOW
+      ]
+      [
+        0#ORANGE
+        1#LIGHT_BLUE
+        3#GREEN
+        4#OFF_WHITE
+        5#YELLOW
+      ]
+      [
+        0#ORANGE
+        4#OFF_WHITE
+        5#YELLOW
+        6#DARK_GREEN
+      ]
+      [
+        3#GREEN
+        5#YELLOW
+        6#DARK_GREEN
+      ]
+      [
+        0#ORANGE
+        1#LIGHT_BLUE
+        2#PINK
+        3#GREEN
+        4#OFF_WHITE
+        5#YELLOW
+      ]
+    ]
+
     LEVEL_COLORS = [
       RED   # Game Over
       BLACK # x1
@@ -468,7 +513,8 @@ html ->
         group: "rocks"
         frame: 0
         init: ->
-          @frame = rand 0, 7*3
+          @color = choose ROCK_COLORS[multiplyer-1]
+          @frame = @color*3 + rand(0,2)
 
           if rand(0,1) is 0
             @tileset = 'small_rock_tiles'
