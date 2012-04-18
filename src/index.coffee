@@ -26,9 +26,9 @@ html ->
     loadResources = ->
       help.akihabaraInit
         title: 'BRASTROSMASH!'
-        width: 162
-        height: 102
-        zoom: 4
+        width: 322
+        height: 202
+        zoom: 2
 
       gbox.setFps 60
 
@@ -41,19 +41,19 @@ html ->
         id: 'small'
         image: 'font'
         firstletter: '!'
-        tileh: 8
-        tilew: 8
+        tileh: 16
+        tilew: 16
         tilerow: 20
         gapx: 0
         gapy: 0
 
       gbox.addImage 'font_green', 'font_green.png'
       gbox.addFont
-        id: 'small'
-        image: 'font'
+        id: 'small_green'
+        image: 'font_green'
         firstletter: '!'
-        tileh: 8
-        tilew: 8
+        tileh: 16
+        tilew: 16
         tilerow: 20
         gapx: 0
         gapy: 0
@@ -64,8 +64,8 @@ html ->
       gbox.addTiles
         id: "spinner_tiles"
         image: "spinner"
-        tileh: 8
-        tilew: 8
+        tileh: 16
+        tilew: 16
         tilerow: 4
         gapx: 0
         gapy: 0
@@ -74,26 +74,70 @@ html ->
       gbox.addTiles
         id: "spinner_big_tiles"
         image: "spinner_big"
-        tileh: 16
-        tilew: 16
+        tileh: 32
+        tilew: 32
         tilerow: 1
+        gapx: 0
+        gapy: 0
+
+      gbox.addImage "small_rocks", "small_rocks.png"
+      gbox.addTiles
+        id: "small_rock_tiles"
+        image: "small_rocks"
+        tilew: 16
+        tileh: 8
+        tilerow: 3
+        gapx: 0
+        gapy: 0
+
+      gbox.addImage "large_rocks", "large_rocks.png"
+      gbox.addTiles
+        id: "large_rock_tiles"
+        image: "large_rocks"
+        tilew: 32
+        tileh: 16
+        tilerow: 3
         gapx: 0
         gapy: 0
 
       gbox.loadAll main
 
     LEFT_WALL = 1
-    RIGHT_WALL = 161
+    RIGHT_WALL = 321
     CEILING = 1
-    FLOOR = 89
+    FLOOR = 177
 
     _score = 0
+    multiplyer = 1
     score_peak = 0
+    one_up_total = 0
 
     score = (change) ->
-      _score += change
+      return if lives < 0
+
+      _score += change*multiplyer
       if _score > score_peak
         score_peak = _score
+
+      if _score > 0
+        one_up_total += change*multiplyer
+        if one_up_total >= ONE_UP_SCORE
+          one_up_total = one_up_total - ONE_UP_SCORE
+          ++lives
+
+      if _score >= X6_LEVEL_SCORE
+        multiplyer = 6
+      else if _score >= X5_LEVEL_SCORE
+        multiplyer = 5
+      else if _score >= X4_LEVEL_SCORE
+        multiplyer = 4
+      else if _score >= X3_LEVEL_SCORE
+        multiplyer = 3
+      else if _score >= X2_LEVEL_SCORE
+        multiplyer = 2
+      else
+        multiplyer = 1
+      multiplyer = 0 if lives < 0
 
     BIG_ROCK_SHOT_SCORE = 10
     SMALL_ROCK_SHOT_SCORE = 20
@@ -107,6 +151,14 @@ html ->
     SMALL_SPINNER_LAND_SCORE = 0
     MISSILE_LAND_SCORE = 0
     DEATH_SCORE = -100
+    ONE_UP_SCORE = 1000
+
+    MAX_MULTIPLYER = 6
+    X2_LEVEL_SCORE = 1000
+    X3_LEVEL_SCORE = 5000
+    X4_LEVEL_SCORE = 20000
+    X5_LEVEL_SCORE = 50000
+    X6_LEVEL_SCORE = 100000
 
     FRAME_LENGTH_MS = 17
 
@@ -253,6 +305,34 @@ html ->
 
       allow_missile_while_ufo: false
     
+    BLACK = '#000000'
+    WHITE = '#ffffff'
+    ORANGE = '#ffb71f'
+    LIGHT_BLUE = '#a797ff'
+    PINK = '#ff4f57'
+    GREEN = '#00a757'
+    OFF_WHITE = '#cfcfaf'
+    YELLOW = '#ffef57'
+    DARK_GREEN = '#3f6f3f'
+    BLUE = '#002fff'
+    RED = '#ff3f17'
+    GRAY = '#bfafcf'
+    CYAN = '#27b7ff'
+    BROWN = '#576f00'
+    YELLOW_GREEN = '#77cf87'
+    PURPLE = '#b71f5f'
+
+    LEVEL_COLORS = [
+      RED   # Game Over
+      BLACK # x1
+      BLUE  # x2
+      PURPLE# x3
+      CYAN  # x4
+      GRAY  # x5
+      BLACK # x6
+    ]
+
+
     RULES = [
       X1_RULES
       X2_RULES
@@ -261,13 +341,21 @@ html ->
       X5_RULES
       X6_RULES
     ]
+    
 
-    multiplyer = 1
+    window.lives = 4
+
     next_spinner = 0
     spinner_count = 0
 
+    next_rock = 0
+    rock_count = 0
+
     gameLogicInit = ->
       next_spinner = rand rules.min_spinner_rest, rules.max_spinner_rest
+      next_rock = rand rules.min_rock_rest, rules.max_rock_rest
+
+    rules = RULES[0]
 
     gameLogic = ->
       rules = RULES[multiplyer-1]
@@ -282,13 +370,31 @@ html ->
           addSpinner()
           ++i
         next_spinner = rand rules.min_spinner_rest, rules.max_spinner_rest
-
       next_spinner -= FRAME_LENGTH_MS
+
+      if next_rock <= 0 and rock_count < rules.max_rocks
+        to_spawn = Math.min(
+          rand(0,rules.max_rock_spawn) + 1,
+          rules.max_rocks - rock_count
+        )
+
+        i = 0
+        while i < to_spawn
+          addRock()
+          ++i
+        next_rock = rand rules.min_rock_rest, rules.max_rock_rest
+      next_rock -= FRAME_LENGTH_MS
 
     player = undefined
 
     death = ->
+      one_up_total = 0
+      rock_count = 0
+      gbox.clearGroup 'rocks'
+      spinner_count = 0
+      gbox.clearGroup 'spinners'
       score DEATH_SCORE
+      --lives
       player.init()
 
 
@@ -300,12 +406,12 @@ html ->
         init: ->
           if rand(0,1) is 0
             @tileset = 'spinner_tiles'
-            @w = 8
-            @h = 8
-          else
-            @tileset = 'spinner_big_tiles'
             @w = 16
             @h = 16
+          else
+            @tileset = 'spinner_big_tiles'
+            @w = 32
+            @h = 32
           @y = -@h
           @x = frand 0, gbox.getScreenW()
           @vx = frand(-0.25, 0.25)
@@ -346,6 +452,74 @@ html ->
             else
               score SMALL_SPINNER_LAND_SCORE
             death()
+            return
+
+        blit: ->
+          gbox.blitTile gbox.getBufferContext(),
+            tileset: @tileset
+            tile: @frame
+            dx: Math.round @x
+            dy: Math.round @y
+            fliph: @fliph
+
+    addRock = ->
+      ++rock_count
+      gbox.addObject
+        group: "rocks"
+        frame: 0
+        init: ->
+          @frame = rand 0, 7*3
+
+          if rand(0,1) is 0
+            @tileset = 'small_rock_tiles'
+            @w = 16
+            @h = 8
+          else
+            @tileset = 'large_rock_tiles'
+            @w = 32
+            @h = 16
+          @y = -@h
+          @x = frand 0, gbox.getScreenW()
+          @vx = frand(-0.25, 0.25)
+          @fliph = @vx < 0
+          @vy = frand(0.125, 1)
+          @active = true
+
+        initialize: ->
+          @init()
+
+        die: ->
+          --rock_count
+          gbox.trashObject @
+
+        first: ->
+          @x += @vx
+          @y += @vy
+          
+          for bullet in player.bullets
+            if bullet.active
+              if gbox.collides @, bullet
+                if @w > 16
+                  score BIG_ROCK_SHOT_SCORE
+                else
+                  score SMALL_ROCK_SHOT_SCORE
+                bullet.active = false
+                @die()
+
+          if gbox.collides @, player
+            death()
+            return
+
+          if @x < LEFT_WALL
+            @die()
+          if @x + @w > RIGHT_WALL
+            @die()
+
+          if @y + @h > FLOOR
+            if @w > 16
+              score BIG_ROCK_LAND_SCORE
+            else
+              score SMALL_ROCK_LAND_SCORE
             @die()
 
         blit: ->
@@ -362,9 +536,9 @@ html ->
         active: false
         x: 0
         y: 0
-        h: 12
-        w: 2
-        speed: 4
+        h: 24
+        w: 4
+        speed: 8
         first: ->
           if @active
             @y -= @speed
@@ -381,8 +555,10 @@ html ->
       gbox.addObject
         id: "player_id"
         group: "player"
-        speed: 2
+        speed: 3
         bullets: []
+        x: 0
+        y: 0
         init: ->
           @w = gbox.getImage('player_sprite').width
           @h = gbox.getImage('player_sprite').height
@@ -420,7 +596,7 @@ html ->
             dy: Math.round @y
 
     main = ->
-      gbox.setGroups ['background', 'bullets', 'spinners', 'player', 'game']
+      gbox.setGroups ['background', 'bullets', 'rocks', 'spinners', 'player', 'game']
       maingame = gamecycle.createMaingame('game', 'game')
       maingame.gameMenu = -> true
  
@@ -453,23 +629,56 @@ html ->
           group: 'background'
           color: 'rgb(0,0,0)'
           blit: ->
+            color_index = 0
+            if lives >= 0
+              color_index = multiplyer
             gbox.blitFade gbox.getBufferContext(),
-              color:@color
+              color:LEVEL_COLORS[color_index]
               alpha:1
 
             gbox.blitAll gbox.getBufferContext(), gbox.getImage('bg'),
               dx:1
               dy:1
-            
+
             gbox.blitText gbox.getBufferContext(),
               font: 'small'
               text: _score
-              dx:16
-              dy:92
-              dw:8*7
-              dh:8
+              dx:32
+              dy:FLOOR + 4
+              dw:16*7
+              dh:16
               valign: gbox.ALIGN_TOP
               halign: gbox.ALIGN_RIGHT
+            
+            lives_text = ''
+            if lives > 7
+              lives_text = '*' + lives
+            else
+              i = 0
+              lives_text = ''
+              while i < lives
+                lives_text += '*'
+                ++i
+
+            gbox.blitText gbox.getBufferContext(),
+              font: 'small_green'
+              text: lives_text
+              dx:160
+              dy:FLOOR + 4
+              dw:16*7
+              dh:16
+              valign: gbox.ALIGN_TOP
+              halign: gbox.ALIGN_LEFT
+
+            gbox.blitText gbox.getBufferContext(),
+              font: 'small'
+              text: 'x'+multiplyer
+              dx:160+16*7
+              dy:FLOOR + 4
+              dw:16*2
+              dh:16
+              valign: gbox.ALIGN_TOP
+              halign: gbox.ALIGN_LEFT
 
       gbox.go()
 
