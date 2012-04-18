@@ -1,5 +1,5 @@
 <html><head><script type="text/javascript" src="akihabara/gbox.js"></script><script type="text/javascript" src="akihabara/iphopad.js"></script><script type="text/javascript" src="akihabara/trigo.js"></script><script type="text/javascript" src="akihabara/toys.js"></script><script type="text/javascript" src="akihabara/help.js"></script><script type="text/javascript" src="akihabara/tool.js"></script><script type="text/javascript" src="akihabara/gamecycle.js"></script><link rel="stylesheet" href="style.css" /><meta name="viewport" content="width:device-width; initial-scale:1.0; maximum-scale:1.0; user-scalable:0;" /></head><body><div class="directions"><span>MOVE: LEFT/RIGHT</span><br /><span>SHOOT: Z/X</span></div></body><script>var __slice = Array.prototype.slice;var __hasProp = Object.prototype.hasOwnProperty;var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };var __extends = function(child, parent) {  for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }  function ctor() { this.constructor = child; }  ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype;  return child; };var __indexOf = Array.prototype.indexOf || function(item) {  for (var i = 0, l = this.length; i < l; i++) {    if (this[i] === item) return i;  } return -1; };(function () {
-    var CEILING, FLOOR, LEFT_WALL, RIGHT_WALL, addBullet, addPlayer, addSpinner, frand, loadResources, main, maingame, rand, spinner_speed_mult;
+    var BIG_ROCK_LAND_SCORE, BIG_ROCK_SHOT_SCORE, BIG_SPINNER_LAND_SCORE, BIG_SPINNER_SHOT_SCORE, BLACK, BLUE, BROWN, CEILING, CYAN, DARK_GREEN, DEATH_SCORE, FLOOR, FRAME_LENGTH_MS, GRAY, GREEN, LEFT_WALL, LEVEL_COLORS, LIGHT_BLUE, MAX_MULTIPLYER, MISSILE_LAND_SCORE, MISSILE_SHOT_SCORE, OFF_WHITE, ONE_UP_SCORE, ORANGE, PINK, PURPLE, RED, RIGHT_WALL, RULES, SMALL_ROCK_LAND_SCORE, SMALL_ROCK_SHOT_SCORE, SMALL_SPINNER_LAND_SCORE, SMALL_SPINNER_SHOT_SCORE, UFO_SHOT_SCORE, WHITE, X1_RULES, X2_LEVEL_SCORE, X2_RULES, X3_LEVEL_SCORE, X3_RULES, X4_LEVEL_SCORE, X4_RULES, X5_LEVEL_SCORE, X5_RULES, X6_LEVEL_SCORE, X6_RULES, YELLOW, YELLOW_GREEN, addBullet, addPlayer, addRock, addSpinner, death, frand, gameLogic, gameLogicInit, loadResources, main, maingame, multiplyer, next_rock, next_spinner, one_up_total, player, rand, rock_count, rules, score, score_peak, spinner_count, _score;
     frand = function(min, max) {
       return min + Math.random() * (max - min);
     };
@@ -9,10 +9,10 @@
     maingame = void 0;
     loadResources = function() {
       help.akihabaraInit({
-        title: 'ASTROSMASH!',
-        width: 162,
-        height: 102,
-        zoom: 4
+        title: 'BRASTROSMASH!',
+        width: 322,
+        height: 202,
+        zoom: 2
       });
       gbox.setFps(60);
       gbox.addImage('logo', 'logo.png');
@@ -23,8 +23,19 @@
         id: 'small',
         image: 'font',
         firstletter: '!',
-        tileh: 8,
-        tilew: 8,
+        tileh: 16,
+        tilew: 16,
+        tilerow: 20,
+        gapx: 0,
+        gapy: 0
+      });
+      gbox.addImage('font_green', 'font_green.png');
+      gbox.addFont({
+        id: 'small_green',
+        image: 'font_green',
+        firstletter: '!',
+        tileh: 16,
+        tilew: 16,
         tilerow: 20,
         gapx: 0,
         gapy: 0
@@ -34,8 +45,8 @@
       gbox.addTiles({
         id: "spinner_tiles",
         image: "spinner",
-        tileh: 8,
-        tilew: 8,
+        tileh: 16,
+        tilew: 16,
         tilerow: 4,
         gapx: 0,
         gapy: 0
@@ -44,63 +55,402 @@
       gbox.addTiles({
         id: "spinner_big_tiles",
         image: "spinner_big",
-        tileh: 16,
-        tilew: 16,
+        tileh: 32,
+        tilew: 32,
         tilerow: 1,
+        gapx: 0,
+        gapy: 0
+      });
+      gbox.addImage("small_rocks", "small_rocks.png");
+      gbox.addTiles({
+        id: "small_rock_tiles",
+        image: "small_rocks",
+        tilew: 16,
+        tileh: 8,
+        tilerow: 3,
+        gapx: 0,
+        gapy: 0
+      });
+      gbox.addImage("large_rocks", "large_rocks.png");
+      gbox.addTiles({
+        id: "large_rock_tiles",
+        image: "large_rocks",
+        tilew: 32,
+        tileh: 16,
+        tilerow: 3,
         gapx: 0,
         gapy: 0
       });
       return gbox.loadAll(main);
     };
-    spinner_speed_mult = 1;
     LEFT_WALL = 1;
-    RIGHT_WALL = 161;
+    RIGHT_WALL = 321;
     CEILING = 1;
-    FLOOR = 89;
+    FLOOR = 177;
+    _score = 0;
+    multiplyer = 1;
+    score_peak = 0;
+    one_up_total = 0;
+    score = function(change) {
+      if (lives < 0) return;
+      _score += change * multiplyer;
+      if (_score > score_peak) score_peak = _score;
+      if (_score > 0) {
+        one_up_total += change * multiplyer;
+        if (one_up_total >= ONE_UP_SCORE) {
+          one_up_total = one_up_total - ONE_UP_SCORE;
+          ++lives;
+        }
+      }
+      if (_score >= X6_LEVEL_SCORE) {
+        multiplyer = 6;
+      } else if (_score >= X5_LEVEL_SCORE) {
+        multiplyer = 5;
+      } else if (_score >= X4_LEVEL_SCORE) {
+        multiplyer = 4;
+      } else if (_score >= X3_LEVEL_SCORE) {
+        multiplyer = 3;
+      } else if (_score >= X2_LEVEL_SCORE) {
+        multiplyer = 2;
+      } else {
+        multiplyer = 1;
+      }
+      if (lives < 0) return multiplyer = 0;
+    };
+    BIG_ROCK_SHOT_SCORE = 10;
+    SMALL_ROCK_SHOT_SCORE = 20;
+    BIG_SPINNER_SHOT_SCORE = 40;
+    SMALL_SPINNER_SHOT_SCORE = 80;
+    MISSILE_SHOT_SCORE = 50;
+    UFO_SHOT_SCORE = 100;
+    BIG_ROCK_LAND_SCORE = -5;
+    SMALL_ROCK_LAND_SCORE = -10;
+    BIG_SPINNER_LAND_SCORE = 0;
+    SMALL_SPINNER_LAND_SCORE = 0;
+    MISSILE_LAND_SCORE = 0;
+    DEATH_SCORE = -100;
+    ONE_UP_SCORE = 1000;
+    MAX_MULTIPLYER = 6;
+    X2_LEVEL_SCORE = 1000;
+    X3_LEVEL_SCORE = 5000;
+    X4_LEVEL_SCORE = 20000;
+    X5_LEVEL_SCORE = 50000;
+    X6_LEVEL_SCORE = 100000;
+    FRAME_LENGTH_MS = 17;
+    X1_RULES = {
+      max_rocks: 6,
+      max_spinners: 2,
+      max_missiles: 1,
+      max_ufos: 0,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 3000,
+      max_spinner_spawn: 1,
+      min_spinner_rest: 2000,
+      max_spinner_rest: 15000,
+      min_missile_rest: 15000,
+      max_missile_rest: 60000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.5,
+      allow_missile_while_ufo: false
+    };
+    X2_RULES = {
+      max_rocks: 6,
+      max_spinners: 2,
+      max_missiles: 1,
+      max_ufos: 0,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 3000,
+      max_spinner_spawn: 2,
+      min_spinner_rest: 1500,
+      max_spinner_rest: 12000,
+      min_missile_rest: 10000,
+      max_missile_rest: 45000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.5,
+      allow_missile_while_ufo: false
+    };
+    X3_RULES = {
+      max_rocks: 6,
+      max_spinners: 3,
+      max_missiles: 1,
+      max_ufos: 0,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 2200,
+      max_spinner_spawn: 3,
+      min_spinner_rest: 1000,
+      max_spinner_rest: 12000,
+      min_missile_rest: 8000,
+      max_missile_rest: 30000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.5,
+      allow_missile_while_ufo: false
+    };
+    X4_RULES = {
+      max_rocks: 8,
+      max_spinners: 4,
+      max_missiles: 1,
+      max_ufos: 1,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 1800,
+      max_spinner_spawn: 3,
+      min_spinner_rest: 500,
+      max_spinner_rest: 12000,
+      min_missile_rest: 8000,
+      max_missile_rest: 30000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.75,
+      allow_missile_while_ufo: false
+    };
+    X5_RULES = {
+      max_rocks: 10,
+      max_spinners: 5,
+      max_missiles: 2,
+      max_ufos: 1,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 1000,
+      max_spinner_spawn: 3,
+      min_spinner_rest: 250,
+      max_spinner_rest: 12000,
+      min_missile_rest: 8000,
+      max_missile_rest: 30000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.75,
+      allow_missile_while_ufo: false
+    };
+    X6_RULES = {
+      max_rocks: 12,
+      max_spinners: 4,
+      max_missiles: 2,
+      max_ufos: 1,
+      max_rock_spawn: 3,
+      min_rock_rest: 0,
+      max_rock_rest: 800,
+      max_spinner_spawn: 4,
+      min_spinner_rest: 0,
+      max_spinner_rest: 12000,
+      min_missile_rest: 8000,
+      max_missile_rest: 20000,
+      min_ufo_rest: 2000,
+      max_ufo_rest: 15000,
+      ufo_speed: 0.85,
+      allow_missile_while_ufo: false
+    };
+    BLACK = '#000000';
+    WHITE = '#ffffff';
+    ORANGE = '#ffb71f';
+    LIGHT_BLUE = '#a797ff';
+    PINK = '#ff4f57';
+    GREEN = '#00a757';
+    OFF_WHITE = '#cfcfaf';
+    YELLOW = '#ffef57';
+    DARK_GREEN = '#3f6f3f';
+    BLUE = '#002fff';
+    RED = '#ff3f17';
+    GRAY = '#bfafcf';
+    CYAN = '#27b7ff';
+    BROWN = '#576f00';
+    YELLOW_GREEN = '#77cf87';
+    PURPLE = '#b71f5f';
+    LEVEL_COLORS = [RED, BLACK, BLUE, PURPLE, CYAN, GRAY, BLACK];
+    RULES = [X1_RULES, X2_RULES, X3_RULES, X4_RULES, X5_RULES, X6_RULES];
+    window.lives = 4;
+    next_spinner = 0;
+    spinner_count = 0;
+    next_rock = 0;
+    rock_count = 0;
+    gameLogicInit = function() {
+      next_spinner = rand(rules.min_spinner_rest, rules.max_spinner_rest);
+      return next_rock = rand(rules.min_rock_rest, rules.max_rock_rest);
+    };
+    rules = RULES[0];
+    gameLogic = function() {
+      var i, to_spawn;
+      rules = RULES[multiplyer - 1];
+      if (next_spinner <= 0 && spinner_count < rules.max_spinners) {
+        to_spawn = Math.min(rand(0, rules.max_spinner_spawn) + 1, rules.max_spinners - spinner_count);
+        i = 0;
+        while (i < to_spawn) {
+          addSpinner();
+          ++i;
+        }
+        next_spinner = rand(rules.min_spinner_rest, rules.max_spinner_rest);
+      }
+      next_spinner -= FRAME_LENGTH_MS;
+      if (next_rock <= 0 && rock_count < rules.max_rocks) {
+        to_spawn = Math.min(rand(0, rules.max_rock_spawn) + 1, rules.max_rocks - rock_count);
+        i = 0;
+        while (i < to_spawn) {
+          addRock();
+          ++i;
+        }
+        next_rock = rand(rules.min_rock_rest, rules.max_rock_rest);
+      }
+      return next_rock -= FRAME_LENGTH_MS;
+    };
+    player = void 0;
+    death = function() {
+      one_up_total = 0;
+      rock_count = 0;
+      gbox.clearGroup('rocks');
+      spinner_count = 0;
+      gbox.clearGroup('spinners');
+      score(DEATH_SCORE);
+      --lives;
+      return player.init();
+    };
     addSpinner = function() {
+      ++spinner_count;
       return gbox.addObject({
         group: "spinners",
         frame: 0,
         init: function() {
           if (rand(0, 1) === 0) {
             this.tileset = 'spinner_tiles';
-            this.w = 8;
-            this.h = 8;
-          } else {
-            this.tileset = 'spinner_big_tiles';
             this.w = 16;
             this.h = 16;
+          } else {
+            this.tileset = 'spinner_big_tiles';
+            this.w = 32;
+            this.h = 32;
           }
           this.y = -this.h;
           this.x = frand(0, gbox.getScreenW());
-          this.vx = frand(-0.25, 0.25) * spinner_speed_mult;
+          this.vx = frand(-0.25, 0.25);
           this.fliph = this.vx < 0;
-          this.vy = frand(0.125, 1) * spinner_speed_mult;
+          this.vy = frand(0.125, 1);
           return this.active = true;
         },
         initialize: function() {
           return this.init();
         },
+        die: function() {
+          --spinner_count;
+          return gbox.trashObject(this);
+        },
         first: function() {
-          if (this.active) {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.frame = Math.floor(this.y / 4) % 4;
-            if (this.x < LEFT_WALL) this.init();
-            if (this.x + this.w > RIGHT_WALL) this.init();
-            if (this.y + this.h > FLOOR) return this.init();
+          var bullet, _i, _len, _ref;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.frame = Math.floor(this.y / 4) % 4;
+          _ref = player.bullets;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            bullet = _ref[_i];
+            if (bullet.active) {
+              if (gbox.collides(this, bullet)) {
+                if (this.w > 8) {
+                  score(BIG_SPINNER_SHOT_SCORE);
+                } else {
+                  score(SMALL_SPINNER_SHOT_SCORE);
+                }
+                bullet.active = false;
+                this.die();
+              }
+            }
+          }
+          if (this.x < LEFT_WALL) this.die();
+          if (this.x + this.w > RIGHT_WALL) this.die();
+          if (this.y + this.h > FLOOR) {
+            if (this.w > 8) {
+              score(BIG_SPINNER_LAND_SCORE);
+            } else {
+              score(SMALL_SPINNER_LAND_SCORE);
+            }
+            death();
           }
         },
         blit: function() {
-          if (this.active) {
-            return gbox.blitTile(gbox.getBufferContext(), {
-              tileset: this.tileset,
-              tile: this.frame,
-              dx: Math.round(this.x),
-              dy: Math.round(this.y),
-              fliph: this.fliph
-            });
+          return gbox.blitTile(gbox.getBufferContext(), {
+            tileset: this.tileset,
+            tile: this.frame,
+            dx: Math.round(this.x),
+            dy: Math.round(this.y),
+            fliph: this.fliph
+          });
+        }
+      });
+    };
+    addRock = function() {
+      ++rock_count;
+      return gbox.addObject({
+        group: "rocks",
+        frame: 0,
+        init: function() {
+          this.frame = rand(0, 7 * 3);
+          if (rand(0, 1) === 0) {
+            this.tileset = 'small_rock_tiles';
+            this.w = 16;
+            this.h = 8;
+          } else {
+            this.tileset = 'large_rock_tiles';
+            this.w = 32;
+            this.h = 16;
           }
+          this.y = -this.h;
+          this.x = frand(0, gbox.getScreenW());
+          this.vx = frand(-0.25, 0.25);
+          this.fliph = this.vx < 0;
+          this.vy = frand(0.125, 1);
+          return this.active = true;
+        },
+        initialize: function() {
+          return this.init();
+        },
+        die: function() {
+          --rock_count;
+          return gbox.trashObject(this);
+        },
+        first: function() {
+          var bullet, _i, _len, _ref;
+          this.x += this.vx;
+          this.y += this.vy;
+          _ref = player.bullets;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            bullet = _ref[_i];
+            if (bullet.active) {
+              if (gbox.collides(this, bullet)) {
+                if (this.w > 16) {
+                  score(BIG_ROCK_SHOT_SCORE);
+                } else {
+                  score(SMALL_ROCK_SHOT_SCORE);
+                }
+                bullet.active = false;
+                this.die();
+              }
+            }
+          }
+          if (gbox.collides(this, player)) {
+            death();
+            return;
+          }
+          if (this.x < LEFT_WALL) this.die();
+          if (this.x + this.w > RIGHT_WALL) this.die();
+          if (this.y + this.h > FLOOR) {
+            if (this.w > 16) {
+              score(BIG_ROCK_LAND_SCORE);
+            } else {
+              score(SMALL_ROCK_LAND_SCORE);
+            }
+            return this.die();
+          }
+        },
+        blit: function() {
+          return gbox.blitTile(gbox.getBufferContext(), {
+            tileset: this.tileset,
+            tile: this.frame,
+            dx: Math.round(this.x),
+            dy: Math.round(this.y),
+            fliph: this.fliph
+          });
         }
       });
     };
@@ -110,9 +460,9 @@
         active: false,
         x: 0,
         y: 0,
-        h: 12,
-        w: 2,
-        speed: 4,
+        h: 24,
+        w: 4,
+        speed: 8,
         first: function() {
           if (this.active) {
             this.y -= this.speed;
@@ -133,9 +483,11 @@
       return gbox.addObject({
         id: "player_id",
         group: "player",
-        speed: 2,
+        speed: 3,
         bullets: [],
-        initialize: function() {
+        x: 0,
+        y: 0,
+        init: function() {
           this.w = gbox.getImage('player_sprite').width;
           this.h = gbox.getImage('player_sprite').height;
           this.x = gbox.getScreenW() / 2 - this.w / 2;
@@ -164,6 +516,9 @@
             return this.x = gbox.getScreenW() - this.w - 1;
           }
         },
+        initialize: function() {
+          return this.init();
+        },
         blit: function() {
           return gbox.blitAll(gbox.getBufferContext(), gbox.getImage('player_sprite'), {
             dx: Math.round(this.x),
@@ -173,7 +528,7 @@
       });
     };
     main = function() {
-      gbox.setGroups(['background', 'bullets', 'spinners', 'player', 'game']);
+      gbox.setGroups(['background', 'bullets', 'rocks', 'spinners', 'player', 'game']);
       maingame = gamecycle.createMaingame('game', 'game');
       maingame.gameMenu = function() {
         return true;
@@ -195,23 +550,71 @@
         return gbox.keyIsHit('a');
       };
       maingame.initializeGame = function() {
-        var player;
         player = addPlayer();
         player.bullets.push(addBullet());
         player.bullets.push(addBullet());
-        addSpinner();
+        gbox.addObject({
+          id: 'game_logic',
+          group: 'game',
+          init: gameLogicInit,
+          first: gameLogic
+        });
         return gbox.addObject({
           id: 'bg_id',
           group: 'background',
           color: 'rgb(0,0,0)',
           blit: function() {
+            var color_index, i, lives_text;
+            color_index = 0;
+            if (lives >= 0) color_index = multiplyer;
             gbox.blitFade(gbox.getBufferContext(), {
-              color: this.color,
+              color: LEVEL_COLORS[color_index],
               alpha: 1
             });
-            return gbox.blitAll(gbox.getBufferContext(), gbox.getImage('bg'), {
+            gbox.blitAll(gbox.getBufferContext(), gbox.getImage('bg'), {
               dx: 1,
               dy: 1
+            });
+            gbox.blitText(gbox.getBufferContext(), {
+              font: 'small',
+              text: _score,
+              dx: 32,
+              dy: FLOOR + 4,
+              dw: 16 * 7,
+              dh: 16,
+              valign: gbox.ALIGN_TOP,
+              halign: gbox.ALIGN_RIGHT
+            });
+            lives_text = '';
+            if (lives > 7) {
+              lives_text = '*' + lives;
+            } else {
+              i = 0;
+              lives_text = '';
+              while (i < lives) {
+                lives_text += '*';
+                ++i;
+              }
+            }
+            gbox.blitText(gbox.getBufferContext(), {
+              font: 'small_green',
+              text: lives_text,
+              dx: 160,
+              dy: FLOOR + 4,
+              dw: 16 * 7,
+              dh: 16,
+              valign: gbox.ALIGN_TOP,
+              halign: gbox.ALIGN_LEFT
+            });
+            return gbox.blitText(gbox.getBufferContext(), {
+              font: 'small',
+              text: 'x' + multiplyer,
+              dx: 160 + 16 * 7,
+              dy: FLOOR + 4,
+              dw: 16 * 2,
+              dh: 16,
+              valign: gbox.ALIGN_TOP,
+              halign: gbox.ALIGN_LEFT
             });
           }
         });
