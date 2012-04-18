@@ -47,6 +47,17 @@ html ->
         gapx: 0
         gapy: 0
 
+      gbox.addImage 'font_green', 'font_green.png'
+      gbox.addFont
+        id: 'small'
+        image: 'font'
+        firstletter: '!'
+        tileh: 8
+        tilew: 8
+        tilerow: 20
+        gapx: 0
+        gapy: 0
+
       gbox.addImage "player_sprite", "player_sprite.png"
 
       gbox.addImage "spinner", "spinner.png"
@@ -77,6 +88,34 @@ html ->
     CEILING = 1
     FLOOR = 89
 
+    _score = 0
+    score_peak = 0
+
+    score = (change) ->
+      _score += change
+      if _score > score_peak
+        score_peak = _score
+
+    BIG_ROCK_SHOT_SCORE = 10
+    SMALL_ROCK_SHOT_SCORE = 20
+    BIG_SPINNER_SHOT_SCORE = 40
+    SMALL_SPINNER_SHOT_SCORE = 80
+    MISSILE_SHOT_SCORE = 50
+    UFO_SHOT_SCORE = 100
+    BIG_ROCK_LAND_SCORE = -5
+    SMALL_ROCK_LAND_SCORE = -10
+    BIG_SPINNER_LAND_SCORE = 0
+    SMALL_SPINNER_LAND_SCORE = 0
+    MISSILE_LAND_SCORE = 0
+    DEATH_SCORE = -100
+
+    player = undefined
+
+    death = ->
+      score DEATH_SCORE
+      player.init()
+
+
     addSpinner = ->
       gbox.addObject
         group: "spinners"
@@ -96,33 +135,45 @@ html ->
           @fliph = @vx < 0
           @vy = frand(0.125, 1) * spinner_speed_mult
           @active = true
+
         initialize: ->
           @init()
 
         first: ->
-          if @active
-            @x += @vx
-            @y += @vy
-            
-            @frame = Math.floor(@y/4) % 4
+          @x += @vx
+          @y += @vy
+          
+          @frame = Math.floor(@y/4) % 4
+          for bullet in player.bullets
+            if bullet.active
+              if gbox.collides @, bullet
+                if @w > 8
+                  score BIG_SPINNER_SHOT_SCORE
+                else
+                  score SMALL_SPINNER_SHOT_SCORE
+                bullet.active = false
+                gbox.trashObject @
 
-            if @x < LEFT_WALL
-              @init()
-            if @x + @w > RIGHT_WALL
-              @init()
+          if @x < LEFT_WALL
+            gbox.trashObject @
+          if @x + @w > RIGHT_WALL
+            gbox.trashObject @
 
-            if @y + @h > FLOOR
-              # TODO EXPLODEEEE
-              @init()
+          if @y + @h > FLOOR
+            if @w > 8
+              score BIG_SPINNER_LAND_SCORE
+            else
+              score SMALL_SPINNER_LAND_SCORE
+            death()
+            gbox.trashObject @
 
         blit: ->
-          if @active
-            gbox.blitTile gbox.getBufferContext(),
-              tileset: @tileset
-              tile: @frame
-              dx: Math.round @x
-              dy: Math.round @y
-              fliph: @fliph
+          gbox.blitTile gbox.getBufferContext(),
+            tileset: @tileset
+            tile: @frame
+            dx: Math.round @x
+            dy: Math.round @y
+            fliph: @fliph
 
     addBullet = ->
       gbox.addObject
@@ -151,7 +202,7 @@ html ->
         group: "player"
         speed: 2
         bullets: []
-        initialize: ->
+        init: ->
           @w = gbox.getImage('player_sprite').width
           @h = gbox.getImage('player_sprite').height
           @x = gbox.getScreenW()/2 - @w/2
@@ -178,6 +229,9 @@ html ->
             @x = 1
           if @x > gbox.getScreenW() - @w - 1
             @x = gbox.getScreenW() - @w - 1
+
+        initialize: ->
+          @init()
 
         blit: ->
           gbox.blitAll gbox.getBufferContext(), gbox.getImage('player_sprite'),
@@ -221,6 +275,16 @@ html ->
             gbox.blitAll gbox.getBufferContext(), gbox.getImage('bg'),
               dx:1
               dy:1
+            
+            gbox.blitText gbox.getBufferContext(),
+              font: 'small'
+              text: _score
+              dx:16
+              dy:92
+              dw:8*7
+              dh:8
+              valign: gbox.ALIGN_TOP
+              halign: gbox.ALIGN_RIGHT
 
       gbox.go()
 
