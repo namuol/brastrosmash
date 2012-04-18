@@ -25,7 +25,7 @@ html ->
 
     loadResources = ->
       help.akihabaraInit
-        title: 'ASTROSMASH!'
+        title: 'BRASTROSMASH!'
         width: 162
         height: 102
         zoom: 4
@@ -82,7 +82,6 @@ html ->
 
       gbox.loadAll main
 
-    spinner_speed_mult = 1
     LEFT_WALL = 1
     RIGHT_WALL = 161
     CEILING = 1
@@ -109,6 +108,183 @@ html ->
     MISSILE_LAND_SCORE = 0
     DEATH_SCORE = -100
 
+    FRAME_LENGTH_MS = 17
+
+    X1_RULES =
+      max_rocks: 6
+      max_spinners: 2
+      max_missiles: 1
+      max_ufos: 0
+      
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 3000
+
+      max_spinner_spawn: 1
+      min_spinner_rest: 2000
+      max_spinner_rest: 15000
+                                     
+      min_missile_rest: 15000
+      max_missile_rest: 60000
+      
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+
+      ufo_speed: 0.5
+      
+      allow_missile_while_ufo: false
+
+    X2_RULES =
+      max_rocks: 6
+      max_spinners: 2
+      max_missiles: 1
+      max_ufos: 0
+          
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 3000
+      
+      max_spinner_spawn: 2
+      min_spinner_rest: 1500
+      max_spinner_rest: 12000
+          
+      min_missile_rest: 10000
+      max_missile_rest: 45000
+                  
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+      
+      ufo_speed: 0.5
+      
+      allow_missile_while_ufo: false
+
+    X3_RULES =
+      max_rocks: 6
+      max_spinners: 3
+      max_missiles: 1
+      max_ufos : 0
+
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 2200
+
+      max_spinner_spawn: 3
+      min_spinner_rest: 1000
+      max_spinner_rest: 12000
+
+      min_missile_rest: 8000
+      max_missile_rest: 30000
+
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+
+      ufo_speed: 0.5
+
+      allow_missile_while_ufo: false
+
+    X4_RULES =
+      max_rocks: 8
+      max_spinners: 4
+      max_missiles: 1
+      max_ufos: 1
+
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 1800
+
+      max_spinner_spawn: 3
+      min_spinner_rest: 500
+      max_spinner_rest: 12000
+
+      min_missile_rest: 8000
+      max_missile_rest: 30000
+
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+
+      ufo_speed: 0.75
+
+      allow_missile_while_ufo: false
+    X5_RULES =
+      max_rocks: 10
+      max_spinners: 5
+      max_missiles: 2
+      max_ufos: 1
+
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 1000
+
+      max_spinner_spawn: 3
+      min_spinner_rest: 250
+      max_spinner_rest: 12000
+
+      min_missile_rest: 8000
+      max_missile_rest: 30000
+
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+
+      ufo_speed: 0.75
+
+      allow_missile_while_ufo: false
+
+    X6_RULES =
+      max_rocks: 12
+      max_spinners: 4
+      max_missiles: 2
+      max_ufos: 1
+
+      max_rock_spawn: 3
+      min_rock_rest: 0
+      max_rock_rest: 800
+
+      max_spinner_spawn: 4
+      min_spinner_rest: 0
+      max_spinner_rest: 12000
+
+      min_missile_rest: 8000
+      max_missile_rest: 20000
+
+      min_ufo_rest: 2000
+      max_ufo_rest: 15000
+
+      ufo_speed: 0.85
+
+      allow_missile_while_ufo: false
+    
+    RULES = [
+      X1_RULES
+      X2_RULES
+      X3_RULES
+      X4_RULES
+      X5_RULES
+      X6_RULES
+    ]
+
+    multiplyer = 1
+    next_spinner = 0
+    spinner_count = 0
+
+    gameLogicInit = ->
+      next_spinner = rand rules.min_spinner_rest, rules.max_spinner_rest
+
+    gameLogic = ->
+      rules = RULES[multiplyer-1]
+      if next_spinner <= 0 and spinner_count < rules.max_spinners
+        to_spawn = Math.min(
+          rand(0,rules.max_spinner_spawn) + 1,
+          rules.max_spinners - spinner_count
+        )
+
+        i = 0
+        while i < to_spawn
+          addSpinner()
+          ++i
+        next_spinner = rand rules.min_spinner_rest, rules.max_spinner_rest
+
+      next_spinner -= FRAME_LENGTH_MS
+
     player = undefined
 
     death = ->
@@ -117,6 +293,7 @@ html ->
 
 
     addSpinner = ->
+      ++spinner_count
       gbox.addObject
         group: "spinners"
         frame: 0
@@ -131,13 +308,17 @@ html ->
             @h = 16
           @y = -@h
           @x = frand 0, gbox.getScreenW()
-          @vx = frand(-0.25, 0.25) * spinner_speed_mult
+          @vx = frand(-0.25, 0.25)
           @fliph = @vx < 0
-          @vy = frand(0.125, 1) * spinner_speed_mult
+          @vy = frand(0.125, 1)
           @active = true
 
         initialize: ->
           @init()
+
+        die: ->
+          --spinner_count
+          gbox.trashObject @
 
         first: ->
           @x += @vx
@@ -152,12 +333,12 @@ html ->
                 else
                   score SMALL_SPINNER_SHOT_SCORE
                 bullet.active = false
-                gbox.trashObject @
+                @die()
 
           if @x < LEFT_WALL
-            gbox.trashObject @
+            @die()
           if @x + @w > RIGHT_WALL
-            gbox.trashObject @
+            @die()
 
           if @y + @h > FLOOR
             if @w > 8
@@ -165,7 +346,7 @@ html ->
             else
               score SMALL_SPINNER_LAND_SCORE
             death()
-            gbox.trashObject @
+            @die()
 
         blit: ->
           gbox.blitTile gbox.getBufferContext(),
@@ -261,7 +442,11 @@ html ->
         player = addPlayer()
         player.bullets.push addBullet()
         player.bullets.push addBullet()
-        addSpinner()
+        gbox.addObject
+          id: 'game_logic'
+          group: 'game'
+          init: gameLogicInit
+          first: gameLogic
 
         gbox.addObject
           id: 'bg_id'
