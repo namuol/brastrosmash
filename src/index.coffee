@@ -110,6 +110,8 @@ html ->
 
     _score = 0
     multiplyer = 1
+    speed_scale = MIN_SPEED_SCALE
+    
     score_peak = 0
     one_up_total = 0
 
@@ -153,6 +155,9 @@ html ->
     MISSILE_LAND_SCORE = 0
     DEATH_SCORE = -100
     ONE_UP_SCORE = 1000
+
+    MIN_SPEED_SCALE = 0.3
+    MAX_SPEED_SCALE = 1.0
 
     MAX_MULTIPLYER = 6
     X2_LEVEL_SCORE = 1000
@@ -327,10 +332,10 @@ html ->
       [
         0#ORANGE
         1#LIGHT_BLUE
-        #2#PINK
-        #3#GREEN
-        #4#OFF_WHITE
-        #5#YELLOW
+        2#PINK
+        3#GREEN
+        4#OFF_WHITE
+        5#YELLOW
       ]
       [
         0#ORANGE
@@ -430,6 +435,12 @@ html ->
         next_rock = rand rules.min_rock_rest, rules.max_rock_rest
       next_rock -= FRAME_LENGTH_MS
 
+      if _score <= 0
+        speed_scale = MIN_SPEED_SCALE
+      else
+        speed_scale = MIN_SPEED_SCALE + Math.min(MAX_SPEED_SCALE-MIN_SPEED_SCALE,
+                                                 Math.sqrt(_score/X6_LEVEL_SCORE))
+
     player = undefined
 
     death = ->
@@ -442,6 +453,10 @@ html ->
       --lives
       player.init()
 
+    MIN_SPINNER_YSPEED = 0.5
+    MAX_SPINNER_YSPEED = 1.0
+    MIN_SPINNER_XSPEED = 0.0
+    MAX_SPINNER_XSPEED = 0.25
 
     addSpinner = ->
       ++spinner_count
@@ -459,10 +474,10 @@ html ->
             @h = 32
           @y = -@h
           @x = frand 0, gbox.getScreenW()
-          @vx = frand(-0.25, 0.25)
+          @vx = frand(MIN_SPINNER_XSPEED, MAX_SPINNER_XSPEED) * speed_scale
+          @vx *= -1 if rand(0,1) is 1
           @fliph = @vx < 0
-          @vy = frand(0.125, 1)
-          @active = true
+          @vy = frand(MIN_SPINNER_YSPEED, MAX_SPINNER_YSPEED) * speed_scale
 
         initialize: ->
           @init()
@@ -507,6 +522,13 @@ html ->
             dy: Math.round @y
             fliph: @fliph
 
+    MIN_ROCK_YSPEED = 0.85
+    MAX_ROCK_YSPEED = 2.0
+    MIN_ROCK_XSPEED = 0
+    MAX_ROCK_XSPEED = 0.25
+    ROCK_SPLIT_SPEED = 0.25
+    ROCK_SPLIT_PROBABILITY = 0.5
+
     addRock = ->
       ++rock_count
       gbox.addObject
@@ -526,10 +548,10 @@ html ->
             @h = 16
           @y = -@h
           @x = frand 0, gbox.getScreenW()
-          @vx = frand(-0.25, 0.25)
+          @vx = frand(MIN_ROCK_XSPEED, MAX_ROCK_XSPEED) * speed_scale
+          @vx *= -1 if rand(0,1) is 1
           @fliph = @vx < 0
-          @vy = frand(0.125, 1)
-          @active = true
+          @vy = frand(MIN_ROCK_YSPEED, MAX_ROCK_YSPEED) * speed_scale
 
         initialize: ->
           @init()
@@ -553,6 +575,8 @@ html ->
                 @die()
 
           if gbox.collides @, player
+            console.log _score
+            console.log speed_scale
             death()
             return
 
@@ -603,8 +627,6 @@ html ->
         group: "player"
         speed: 3
         bullets: []
-        x: 0
-        y: 0
         init: ->
           @w = gbox.getImage('player_sprite').width
           @h = gbox.getImage('player_sprite').height
@@ -642,7 +664,7 @@ html ->
             dy: Math.round @y
 
     main = ->
-      gbox.setGroups ['background', 'bullets', 'rocks', 'spinners', 'player', 'game']
+      gbox.setGroups ['background', 'bullets', 'rocks', 'spinners', 'game', 'player']
       maingame = gamecycle.createMaingame('game', 'game')
       maingame.gameMenu = -> true
  
