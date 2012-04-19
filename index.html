@@ -1,10 +1,13 @@
 <html><head><script type="text/javascript" src="akihabara/gbox.js"></script><script type="text/javascript" src="akihabara/iphopad.js"></script><script type="text/javascript" src="akihabara/trigo.js"></script><script type="text/javascript" src="akihabara/toys.js"></script><script type="text/javascript" src="akihabara/help.js"></script><script type="text/javascript" src="akihabara/tool.js"></script><script type="text/javascript" src="akihabara/gamecycle.js"></script><link rel="stylesheet" href="style.css" /><meta name="viewport" content="width:device-width; initial-scale:1.0; maximum-scale:1.0; user-scalable:0;" /></head><body><div class="directions"><span>MOVE: LEFT/RIGHT</span><br /><span>SHOOT: Z/X</span></div></body><script>var __slice = Array.prototype.slice;var __hasProp = Object.prototype.hasOwnProperty;var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };var __extends = function(child, parent) {  for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }  function ctor() { this.constructor = child; }  ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype;  return child; };var __indexOf = Array.prototype.indexOf || function(item) {  for (var i = 0, l = this.length; i < l; i++) {    if (this[i] === item) return i;  } return -1; };(function () {
-    var BIG_ROCK_LAND_SCORE, BIG_ROCK_SHOT_SCORE, BIG_SPINNER_LAND_SCORE, BIG_SPINNER_SHOT_SCORE, BLACK, BLUE, BROWN, CEILING, CYAN, DARK_GREEN, DEATH_SCORE, FLOOR, FRAME_LENGTH_MS, GRAY, GREEN, LEFT_WALL, LEVEL_COLORS, LIGHT_BLUE, MAX_MULTIPLYER, MISSILE_LAND_SCORE, MISSILE_SHOT_SCORE, OFF_WHITE, ONE_UP_SCORE, ORANGE, PINK, PURPLE, RED, RIGHT_WALL, RULES, SMALL_ROCK_LAND_SCORE, SMALL_ROCK_SHOT_SCORE, SMALL_SPINNER_LAND_SCORE, SMALL_SPINNER_SHOT_SCORE, UFO_SHOT_SCORE, WHITE, X1_RULES, X2_LEVEL_SCORE, X2_RULES, X3_LEVEL_SCORE, X3_RULES, X4_LEVEL_SCORE, X4_RULES, X5_LEVEL_SCORE, X5_RULES, X6_LEVEL_SCORE, X6_RULES, YELLOW, YELLOW_GREEN, addBullet, addPlayer, addRock, addSpinner, death, frand, gameLogic, gameLogicInit, loadResources, main, maingame, multiplyer, next_rock, next_spinner, one_up_total, player, rand, rock_count, rules, score, score_peak, spinner_count, _score;
+    var BIG_ROCK_LAND_SCORE, BIG_ROCK_SHOT_SCORE, BIG_SPINNER_LAND_SCORE, BIG_SPINNER_SHOT_SCORE, BLACK, BLUE, BROWN, CEILING, CYAN, DARK_GREEN, DEATH_SCORE, FLOOR, FRAME_LENGTH_MS, GRAY, GREEN, LEFT_WALL, LEVEL_COLORS, LIGHT_BLUE, MAX_MULTIPLYER, MAX_ROCK_XSPEED, MAX_ROCK_YSPEED, MAX_SPEED_SCALE, MAX_SPINNER_XSPEED, MAX_SPINNER_YSPEED, MIN_ROCK_XSPEED, MIN_ROCK_YSPEED, MIN_SPEED_SCALE, MIN_SPINNER_XSPEED, MIN_SPINNER_YSPEED, MISSILE_LAND_SCORE, MISSILE_SHOT_SCORE, OFF_WHITE, ONE_UP_SCORE, ORANGE, PINK, PURPLE, RED, RIGHT_WALL, ROCK_COLORS, ROCK_SPLIT_PROBABILITY, ROCK_SPLIT_SPEED, RULES, SMALL_ROCK_LAND_SCORE, SMALL_ROCK_SHOT_SCORE, SMALL_SPINNER_LAND_SCORE, SMALL_SPINNER_SHOT_SCORE, UFO_SHOT_SCORE, WHITE, X1_RULES, X2_LEVEL_SCORE, X2_RULES, X3_LEVEL_SCORE, X3_RULES, X4_LEVEL_SCORE, X4_RULES, X5_LEVEL_SCORE, X5_RULES, X6_LEVEL_SCORE, X6_RULES, YELLOW, YELLOW_GREEN, addBullet, addPlayer, addRock, addSpinner, choose, death, frand, gameLogic, gameLogicInit, loadResources, main, maingame, multiplyer, next_rock, next_spinner, one_up_total, player, rock_count, rules, score, score_peak, speed_scale, spinner_count, _score;
     frand = function(min, max) {
       return min + Math.random() * (max - min);
     };
-    rand = function(min, max) {
+    window.rand = function(min, max) {
       return Math.round(frand(min, max));
+    };
+    choose = function(array) {
+      return array[rand(0, array.length - 1)];
     };
     maingame = void 0;
     loadResources = function() {
@@ -89,6 +92,7 @@
     FLOOR = 177;
     _score = 0;
     multiplyer = 1;
+    speed_scale = MIN_SPEED_SCALE;
     score_peak = 0;
     one_up_total = 0;
     score = function(change) {
@@ -130,6 +134,8 @@
     MISSILE_LAND_SCORE = 0;
     DEATH_SCORE = -100;
     ONE_UP_SCORE = 1000;
+    MIN_SPEED_SCALE = 0.3;
+    MAX_SPEED_SCALE = 1.0;
     MAX_MULTIPLYER = 6;
     X2_LEVEL_SCORE = 1000;
     X3_LEVEL_SCORE = 5000;
@@ -261,6 +267,7 @@
     BROWN = '#576f00';
     YELLOW_GREEN = '#77cf87';
     PURPLE = '#b71f5f';
+    ROCK_COLORS = [[0, 1, 2, 3, 4, 5], [0, 1, 2, 4, 5], [0, 1, 3, 4, 5], [0, 4, 5, 6], [3, 5, 6], [0, 1, 2, 3, 4, 5]];
     LEVEL_COLORS = [RED, BLACK, BLUE, PURPLE, CYAN, GRAY, BLACK];
     RULES = [X1_RULES, X2_RULES, X3_RULES, X4_RULES, X5_RULES, X6_RULES];
     window.lives = 4;
@@ -295,7 +302,12 @@
         }
         next_rock = rand(rules.min_rock_rest, rules.max_rock_rest);
       }
-      return next_rock -= FRAME_LENGTH_MS;
+      next_rock -= FRAME_LENGTH_MS;
+      if (_score <= 0) {
+        return speed_scale = MIN_SPEED_SCALE;
+      } else {
+        return speed_scale = MIN_SPEED_SCALE + Math.min(MAX_SPEED_SCALE - MIN_SPEED_SCALE, Math.sqrt(_score / X6_LEVEL_SCORE));
+      }
     };
     player = void 0;
     death = function() {
@@ -308,6 +320,10 @@
       --lives;
       return player.init();
     };
+    MIN_SPINNER_YSPEED = 0.5;
+    MAX_SPINNER_YSPEED = 1.0;
+    MIN_SPINNER_XSPEED = 0.0;
+    MAX_SPINNER_XSPEED = 0.25;
     addSpinner = function() {
       ++spinner_count;
       return gbox.addObject({
@@ -325,10 +341,10 @@
           }
           this.y = -this.h;
           this.x = frand(0, gbox.getScreenW());
-          this.vx = frand(-0.25, 0.25);
+          this.vx = frand(MIN_SPINNER_XSPEED, MAX_SPINNER_XSPEED) * speed_scale;
+          if (rand(0, 1) === 1) this.vx *= -1;
           this.fliph = this.vx < 0;
-          this.vy = frand(0.125, 1);
-          return this.active = true;
+          return this.vy = frand(MIN_SPINNER_YSPEED, MAX_SPINNER_YSPEED) * speed_scale;
         },
         initialize: function() {
           return this.init();
@@ -379,13 +395,20 @@
         }
       });
     };
+    MIN_ROCK_YSPEED = 0.85;
+    MAX_ROCK_YSPEED = 2.0;
+    MIN_ROCK_XSPEED = 0;
+    MAX_ROCK_XSPEED = 0.25;
+    ROCK_SPLIT_SPEED = 0.25;
+    ROCK_SPLIT_PROBABILITY = 0.5;
     addRock = function() {
       ++rock_count;
       return gbox.addObject({
         group: "rocks",
         frame: 0,
         init: function() {
-          this.frame = rand(0, 7 * 3);
+          this.color = choose(ROCK_COLORS[multiplyer - 1]);
+          this.frame = this.color * 3 + rand(0, 2);
           if (rand(0, 1) === 0) {
             this.tileset = 'small_rock_tiles';
             this.w = 16;
@@ -397,10 +420,10 @@
           }
           this.y = -this.h;
           this.x = frand(0, gbox.getScreenW());
-          this.vx = frand(-0.25, 0.25);
+          this.vx = frand(MIN_ROCK_XSPEED, MAX_ROCK_XSPEED) * speed_scale;
+          if (rand(0, 1) === 1) this.vx *= -1;
           this.fliph = this.vx < 0;
-          this.vy = frand(0.125, 1);
-          return this.active = true;
+          return this.vy = frand(MIN_ROCK_YSPEED, MAX_ROCK_YSPEED) * speed_scale;
         },
         initialize: function() {
           return this.init();
@@ -429,6 +452,8 @@
             }
           }
           if (gbox.collides(this, player)) {
+            console.log(_score);
+            console.log(speed_scale);
             death();
             return;
           }
@@ -485,8 +510,6 @@
         group: "player",
         speed: 3,
         bullets: [],
-        x: 0,
-        y: 0,
         init: function() {
           this.w = gbox.getImage('player_sprite').width;
           this.h = gbox.getImage('player_sprite').height;
@@ -528,7 +551,7 @@
       });
     };
     main = function() {
-      gbox.setGroups(['background', 'bullets', 'rocks', 'spinners', 'player', 'game']);
+      gbox.setGroups(['background', 'bullets', 'rocks', 'spinners', 'game', 'player']);
       maingame = gamecycle.createMaingame('game', 'game');
       maingame.gameMenu = function() {
         return true;
