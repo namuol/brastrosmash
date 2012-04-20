@@ -59,42 +59,52 @@ html ->
         gapx: 0
         gapy: 0
 
-      gbox.addImage "player_sprite", "player_sprite.png"
+      gbox.addImage 'player_sprite', 'player_sprite.png'
 
-      gbox.addImage "spinner", "spinner.png"
+      gbox.addImage 'explosion', 'explosion.png'
       gbox.addTiles
-        id: "spinner_tiles"
-        image: "spinner"
+        id: 'explosion_tiles'
+        image: 'explosion'
+        tileh: 16
+        tilew: 16
+        tilerow: 1
+        gapx: 0
+        gapy: 0
+
+      gbox.addImage 'spinner', 'spinner.png'
+      gbox.addTiles
+        id: 'spinner_tiles'
+        image: 'spinner'
         tileh: 16
         tilew: 16
         tilerow: 4
         gapx: 0
         gapy: 0
 
-      gbox.addImage "spinner_big", "spinner_big.png"
+      gbox.addImage 'spinner_big', 'spinner_big.png'
       gbox.addTiles
-        id: "spinner_big_tiles"
-        image: "spinner_big"
+        id: 'spinner_big_tiles'
+        image: 'spinner_big'
         tileh: 32
         tilew: 32
         tilerow: 1
         gapx: 0
         gapy: 0
 
-      gbox.addImage "small_rocks", "small_rocks.png"
+      gbox.addImage 'small_rocks', 'small_rocks.png'
       gbox.addTiles
-        id: "small_rock_tiles"
-        image: "small_rocks"
+        id: 'small_rock_tiles'
+        image: 'small_rocks'
         tilew: 16
         tileh: 8
         tilerow: 3
         gapx: 0
         gapy: 0
 
-      gbox.addImage "large_rocks", "large_rocks.png"
+      gbox.addImage 'large_rocks', 'large_rocks.png'
       gbox.addTiles
-        id: "large_rock_tiles"
-        image: "large_rocks"
+        id: 'large_rock_tiles'
+        image: 'large_rocks'
         tilew: 32
         tileh: 16
         tilerow: 3
@@ -461,7 +471,7 @@ html ->
     addSpinner = ->
       ++spinner_count
       gbox.addObject
-        group: "spinners"
+        group: 'spinners'
         frame: 0
         init: ->
           if rand(0,1) is 0
@@ -499,6 +509,7 @@ html ->
                 else
                   score SMALL_SPINNER_SHOT_SCORE
                 bullet.active = false
+                addExplosion @x+@w/2, @y+@h/2
                 @die()
 
           if @x < LEFT_WALL
@@ -529,29 +540,45 @@ html ->
     ROCK_SPLIT_SPEED = 0.25
     ROCK_SPLIT_PROBABILITY = 0.5
 
-    addRock = ->
+    addRock = (parent, num, rock_num) ->
       ++rock_count
       gbox.addObject
-        group: "rocks"
+        group: 'rocks'
         frame: 0
         init: ->
-          @color = choose ROCK_COLORS[multiplyer-1]
-          @frame = @color*3 + rand(0,2)
-
-          if rand(0,1) is 0
+          if parent
+            if num is 1
+              @vx = -ROCK_SPLIT_SPEED + parent.vx
+              @x = parent.x + 4
+            else
+              @vx = ROCK_SPLIT_SPEED + parent.vx
+              @x = parent.x + 4
+            @y = parent.y
+            @vy = parent.vy
+            @color = parent.color
             @tileset = 'small_rock_tiles'
             @w = 16
             @h = 8
           else
-            @tileset = 'large_rock_tiles'
-            @w = 32
-            @h = 16
-          @y = -@h
-          @x = frand 0, gbox.getScreenW()
-          @vx = frand(MIN_ROCK_XSPEED, MAX_ROCK_XSPEED) * speed_scale
-          @vx *= -1 if rand(0,1) is 1
+            @color = choose ROCK_COLORS[multiplyer-1]
+            rock_num = rand(0,2)
+
+            if rand(0,1) is 0
+              @tileset = 'small_rock_tiles'
+              @w = 16
+              @h = 8
+            else
+              @tileset = 'large_rock_tiles'
+              @w = 32
+              @h = 16
+            @y = -@h
+            @x = frand 0, gbox.getScreenW()
+            @vx = frand(MIN_ROCK_XSPEED, MAX_ROCK_XSPEED) * speed_scale
+            @vx *= -1 if rand(0,1) is 1
+            @vy = frand(MIN_ROCK_YSPEED, MAX_ROCK_YSPEED) * speed_scale
+
+          @frame = @color*3 + rock_num
           @fliph = @vx < 0
-          @vy = frand(MIN_ROCK_YSPEED, MAX_ROCK_YSPEED) * speed_scale
 
         initialize: ->
           @init()
@@ -572,6 +599,12 @@ html ->
                 else
                   score SMALL_ROCK_SHOT_SCORE
                 bullet.active = false
+                if @w > 16 and frand(0,1) < ROCK_SPLIT_PROBABILITY
+                  rock_num = rand(0,2)
+                  addRock @, 0, rock_num
+                  addRock @, 1, rock_num
+                else
+                  addExplosion @x+@w/2, @y+@h/2
                 @die()
 
           if gbox.collides @, player
@@ -600,6 +633,37 @@ html ->
             dy: Math.round @y
             fliph: @fliph
 
+    EXPLOSION_FRAME_LENGTH = 3
+    EXPLOSION_FRAME_COUNT = 7
+    EXPLOSION_FRAME_HEIGHT = 16
+    EXPLOSION_FRAME_WIDTH = 16
+
+    addExplosion = (x,y) ->
+      gbox.addObject
+        group: 'explosions'
+        frame: 0
+        tileset: 'explosion_tiles'
+        x: x-8
+        y: y-8
+        frame_count: 0
+
+        die: ->
+          gbox.trashObject @
+
+        first: ->
+          ++@frame_count
+          if @frame_count > EXPLOSION_FRAME_LENGTH * EXPLOSION_FRAME_COUNT
+            @die()
+
+          @frame = Math.floor @frame_count / EXPLOSION_FRAME_LENGTH
+
+        blit: ->
+          gbox.blitTile gbox.getBufferContext(),
+            tileset: @tileset
+            tile: @frame
+            dx: Math.round @x
+            dy: Math.round @y
+
     addBullet = ->
       gbox.addObject
         group: 'bullets'
@@ -623,8 +687,8 @@ html ->
 
     addPlayer = ->
       gbox.addObject
-        id: "player_id"
-        group: "player"
+        id: 'player_id'
+        group: 'player'
         speed: 3
         bullets: []
         init: ->
@@ -664,7 +728,7 @@ html ->
             dy: Math.round @y
 
     main = ->
-      gbox.setGroups ['background', 'bullets', 'rocks', 'spinners', 'game', 'player']
+      gbox.setGroups ['background', 'explosions', 'bullets', 'rocks', 'spinners', 'game', 'player']
       maingame = gamecycle.createMaingame('game', 'game')
       maingame.gameMenu = -> true
  
