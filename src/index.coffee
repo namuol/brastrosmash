@@ -492,9 +492,15 @@ html ->
         initialize: ->
           @init()
 
-        die: ->
+        die: (doScore) ->
           --spinner_count
           gbox.trashObject @
+
+          if doScore > 0
+            if @w > 16
+              score BIG_SPINNER_SHOT_SCORE
+            else
+              score SMALL_SPINNER_SHOT_SCORE
 
         first: ->
           @x += @vx
@@ -504,24 +510,30 @@ html ->
           for bullet in player.bullets
             if bullet.active
               if gbox.collides @, bullet
-                if @w > 8
-                  score BIG_SPINNER_SHOT_SCORE
-                else
-                  score SMALL_SPINNER_SHOT_SCORE
                 bullet.active = false
                 addExplosion @x+@w/2, @y+@h/2
-                @die()
+                @die(1)
+                return
+
+          for own id,explosion of gbox.getGroup 'explosions'
+            if gbox.collides @, explosion
+              addExplosion @x+@w/2, @y+@h/2
+              @die(1)
+              return
 
           if @x < LEFT_WALL
-            @die()
+            @die(0)
+            return
           if @x + @w > RIGHT_WALL
-            @die()
+            @die(0)
+            return
 
           if @y + @h > FLOOR
-            if @w > 8
+            if @w > 16
               score BIG_SPINNER_LAND_SCORE
             else
               score SMALL_SPINNER_LAND_SCORE
+
             death()
             return
 
@@ -583,9 +595,20 @@ html ->
         initialize: ->
           @init()
 
-        die: ->
+        die: (doScore) ->
           --rock_count
           gbox.trashObject @
+
+          if doScore > 0
+            if @w > 16
+              score BIG_ROCK_SHOT_SCORE
+            else
+              score SMALL_ROCK_SHOT_SCORE
+          else if doScore < 0
+            if @w > 16
+              score BIG_ROCK_LAND_SCORE
+            else
+              score SMALL_ROCK_LAND_SCORE
 
         first: ->
           @x += @vx
@@ -594,10 +617,6 @@ html ->
           for bullet in player.bullets
             if bullet.active
               if gbox.collides @, bullet
-                if @w > 16
-                  score BIG_ROCK_SHOT_SCORE
-                else
-                  score SMALL_ROCK_SHOT_SCORE
                 bullet.active = false
                 if @w > 16 and frand(0,1) < ROCK_SPLIT_PROBABILITY
                   rock_num = rand(0,2)
@@ -605,7 +624,14 @@ html ->
                   addRock @, 1, rock_num
                 else
                   addExplosion @x+@w/2, @y+@h/2
-                @die()
+                @die(1)
+                return
+
+          for own id,explosion of gbox.getGroup 'explosions'
+            if gbox.collides @, explosion
+              addExplosion @x+@w/2, @y+@h/2
+              @die(1)
+              return
 
           if gbox.collides @, player
             console.log _score
@@ -614,16 +640,12 @@ html ->
             return
 
           if @x < LEFT_WALL
-            @die()
+            @die(0)
           if @x + @w > RIGHT_WALL
-            @die()
+            @die(0)
 
           if @y + @h > FLOOR
-            if @w > 16
-              score BIG_ROCK_LAND_SCORE
-            else
-              score SMALL_ROCK_LAND_SCORE
-            @die()
+            @die(-1)
 
         blit: ->
           gbox.blitTile gbox.getBufferContext(),
@@ -654,6 +676,9 @@ html ->
           ++@frame_count
           if @frame_count > EXPLOSION_FRAME_LENGTH * EXPLOSION_FRAME_COUNT
             @die()
+
+          if gbox.collides @, player, 0
+            death()
 
           @frame = Math.floor @frame_count / EXPLOSION_FRAME_LENGTH
 

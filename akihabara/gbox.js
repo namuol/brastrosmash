@@ -1042,6 +1042,11 @@ var gbox={
   */    
 	groupIsEmpty:function(gid) { for (var i in this._objects[gid]) return false; return true; },
   
+  // HACK: Added since there's no convenient way to do this:
+  getGroup:function(gid) {
+    return this._objects[gid];
+  },
+  
   /**
   * Creates a new canvas. By default, the width and height is the current gbox._screenw and gbox._screenh,
   * but it can also be set by passing in a data object with the appropriate parameters.
