@@ -359,12 +359,19 @@
         initialize: function() {
           return this.init();
         },
-        die: function() {
+        die: function(doScore) {
           --spinner_count;
-          return gbox.trashObject(this);
+          gbox.trashObject(this);
+          if (doScore > 0) {
+            if (this.w > 16) {
+              return score(BIG_SPINNER_SHOT_SCORE);
+            } else {
+              return score(SMALL_SPINNER_SHOT_SCORE);
+            }
+          }
         },
         first: function() {
-          var bullet, _i, _len, _ref;
+          var bullet, explosion, id, _i, _len, _ref, _ref2;
           this.x += this.vx;
           this.y += this.vy;
           this.frame = Math.floor(this.y / 4) % 4;
@@ -373,21 +380,33 @@
             bullet = _ref[_i];
             if (bullet.active) {
               if (gbox.collides(this, bullet)) {
-                if (this.w > 8) {
-                  score(BIG_SPINNER_SHOT_SCORE);
-                } else {
-                  score(SMALL_SPINNER_SHOT_SCORE);
-                }
                 bullet.active = false;
                 addExplosion(this.x + this.w / 2, this.y + this.h / 2);
-                this.die();
+                this.die(1);
+                return;
               }
             }
           }
-          if (this.x < LEFT_WALL) this.die();
-          if (this.x + this.w > RIGHT_WALL) this.die();
+          _ref2 = gbox.getGroup('explosions');
+          for (id in _ref2) {
+            if (!__hasProp.call(_ref2, id)) continue;
+            explosion = _ref2[id];
+            if (gbox.collides(this, explosion)) {
+              addExplosion(this.x + this.w / 2, this.y + this.h / 2);
+              this.die(1);
+              return;
+            }
+          }
+          if (this.x < LEFT_WALL) {
+            this.die(0);
+            return;
+          }
+          if (this.x + this.w > RIGHT_WALL) {
+            this.die(0);
+            return;
+          }
           if (this.y + this.h > FLOOR) {
-            if (this.w > 8) {
+            if (this.w > 16) {
               score(BIG_SPINNER_LAND_SCORE);
             } else {
               score(SMALL_SPINNER_LAND_SCORE);
@@ -456,12 +475,25 @@
         initialize: function() {
           return this.init();
         },
-        die: function() {
+        die: function(doScore) {
           --rock_count;
-          return gbox.trashObject(this);
+          gbox.trashObject(this);
+          if (doScore > 0) {
+            if (this.w > 16) {
+              return score(BIG_ROCK_SHOT_SCORE);
+            } else {
+              return score(SMALL_ROCK_SHOT_SCORE);
+            }
+          } else if (doScore < 0) {
+            if (this.w > 16) {
+              return score(BIG_ROCK_LAND_SCORE);
+            } else {
+              return score(SMALL_ROCK_LAND_SCORE);
+            }
+          }
         },
         first: function() {
-          var bullet, _i, _len, _ref;
+          var bullet, explosion, id, _i, _len, _ref, _ref2;
           this.x += this.vx;
           this.y += this.vy;
           _ref = player.bullets;
@@ -469,11 +501,6 @@
             bullet = _ref[_i];
             if (bullet.active) {
               if (gbox.collides(this, bullet)) {
-                if (this.w > 16) {
-                  score(BIG_ROCK_SHOT_SCORE);
-                } else {
-                  score(SMALL_ROCK_SHOT_SCORE);
-                }
                 bullet.active = false;
                 if (this.w > 16 && frand(0, 1) < ROCK_SPLIT_PROBABILITY) {
                   rock_num = rand(0, 2);
@@ -482,8 +509,19 @@
                 } else {
                   addExplosion(this.x + this.w / 2, this.y + this.h / 2);
                 }
-                this.die();
+                this.die(1);
+                return;
               }
+            }
+          }
+          _ref2 = gbox.getGroup('explosions');
+          for (id in _ref2) {
+            if (!__hasProp.call(_ref2, id)) continue;
+            explosion = _ref2[id];
+            if (gbox.collides(this, explosion)) {
+              addExplosion(this.x + this.w / 2, this.y + this.h / 2);
+              this.die(1);
+              return;
             }
           }
           if (gbox.collides(this, player)) {
@@ -492,16 +530,9 @@
             death();
             return;
           }
-          if (this.x < LEFT_WALL) this.die();
-          if (this.x + this.w > RIGHT_WALL) this.die();
-          if (this.y + this.h > FLOOR) {
-            if (this.w > 16) {
-              score(BIG_ROCK_LAND_SCORE);
-            } else {
-              score(SMALL_ROCK_LAND_SCORE);
-            }
-            return this.die();
-          }
+          if (this.x < LEFT_WALL) this.die(0);
+          if (this.x + this.w > RIGHT_WALL) this.die(0);
+          if (this.y + this.h > FLOOR) return this.die(-1);
         },
         blit: function() {
           return gbox.blitTile(gbox.getBufferContext(), {
@@ -534,6 +565,7 @@
           if (this.frame_count > EXPLOSION_FRAME_LENGTH * EXPLOSION_FRAME_COUNT) {
             this.die();
           }
+          if (gbox.collides(this, player, 0)) death();
           return this.frame = Math.floor(this.frame_count / EXPLOSION_FRAME_LENGTH);
         },
         blit: function() {
